@@ -1,9 +1,12 @@
-"""Render the front page for Saturday 21 November 2026 (round 6).
+"""Render the front page for Saturday 21 November 2026 (round 7).
 
-Round 6 keeps round 4's proven composition and restores one element
-of the top entry that round 4 dropped: a small gold verification
-stamp (CONFIRMED / OFFICIAL / REPORTED) on the banner of every one
-of the 13 story panels, graded by how each story is sourced.
+Round 7 keeps round 6's page (the round-4 composition with gold
+verification stamps on all 13 panels) and converges two typographic
+treatments on the top entry's: the region bar is now a thick strip
+whose white bold labels sit inside their segments, and the hero
+headlines are set larger (serif 25 on a 28 lead, still two lines --
+three lines at a larger size would squeeze the summaries against
+the small-panel row, so the panel's room goes into size instead).
 
 Round 4 converged the page onto the composition of the current top
 entry of this competition: red banner strips inside every scene, a
@@ -46,6 +49,7 @@ SERIF_B = "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf"
 SERIF_I = "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf"
 SANS = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 SANS_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+SANS_NB = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
 
 
 def font(path, size):
@@ -662,10 +666,10 @@ def hero_panel(d, img, x, y, w, story, seed):
     d.rectangle([x, y, x + w, y + sh], outline=FAINT, width=1)
     kicker(d, x, y + sh + 5, num, place, field)
     hy = y + sh + 23
-    lines = wrap(d, head, font(SERIF_B, 20), w, 2)
+    lines = wrap(d, head, font(SERIF_B, 25), w, 2)
     for line in lines:
-        d.text((x, hy), line, font=font(SERIF_B, 20), fill=INK)
-        hy += 23
+        d.text((x, hy), line, font=font(SERIF_B, 25), fill=INK)
+        hy += 28
     sy = hy + 3
     for line in wrap(d, summ, font(SANS, 10), w, 3):
         d.text((x, sy), line, font=font(SANS, 10), fill=(52, 50, 46))
@@ -797,26 +801,32 @@ def render():
             d.text((tx, ty), line, font=font(SANS, 8), fill=GREY)
             ty += 11
 
-    # Region-count bar with coloured labels under each segment
-    by = 182
+    # Region-count bar: thick segments with white bold labels inside
+    # them, the top entry's treatment. A label too wide for its
+    # segment falls back to the region name alone, then to a smaller
+    # size, so every label stays inside its own segment.
+    by = 180
+    bh = 16
     total = sum(c for _, c, _ in REGIONS)
     bx = M
-    seg_x = []
     for name, cnt, col in REGIONS:
         seg = CW * cnt / total
-        d.rectangle([bx, by, bx + seg, by + 12], fill=col)
-        seg_x.append(bx)
+        d.rectangle([bx, by, bx + seg, by + bh], fill=col)
+        label, lf, ls = None, None, 10
+        for text in ("%s %d" % (name, cnt), name):
+            for size in (10, 9, 8):
+                f = font(SANS_NB, size)
+                if d.textlength(text, font=f) <= seg - 2:
+                    label, lf, ls = text, f, size
+                    break
+            if label:
+                break
+        if label is None:
+            label, lf, ls = name, font(SANS_NB, 8), 8
+        tw = d.textlength(label, font=lf)
+        d.text((bx + (seg - tw) / 2, by + bh // 2 - ls // 2 - 1), label,
+               font=lf, fill=WHITE)
         bx += seg
-    lx = M
-    for (name, cnt, col), sx0 in zip(REGIONS, seg_x):
-        label = "%s %d" % (name, cnt)
-        f = font(SANS_B, 10)
-        tw = d.textlength(label, font=f)
-        px = max(sx0, lx)
-        if px + tw > W - M:
-            px = W - M - tw
-        d.text((px, by + 15), label, font=f, fill=col)
-        lx = px + tw + 9
 
     # Three lead panels
     ly = 216
